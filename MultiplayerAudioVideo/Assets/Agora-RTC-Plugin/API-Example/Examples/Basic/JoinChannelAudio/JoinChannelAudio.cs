@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.Serialization;
 using Agora.Rtc;
 using io.agora.rtc.demo;
+using TMPro;
 
 namespace Agora_RTC_Plugin.API_Example.Examples.Basic.JoinChannelAudio
 {

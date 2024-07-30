@@ -122,7 +122,7 @@ namespace Agora_RTC_Plugin.API_Example.Examples.Basic.JoinChannelVideo
         public void JoinChannel()
         {
             RtcEngine.JoinChannel(_token, _channelName,"",0);
-            MakeVideoView(0);
+            MakeVideoView(0, _channelName);
         }
 
         public void LeaveChannel()
@@ -228,9 +228,11 @@ namespace Agora_RTC_Plugin.API_Example.Examples.Basic.JoinChannelVideo
 
         internal static void MakeVideoView(uint uid, string channelId = "")
         {
+            Debug.Log("UID" + uid);
             var go = GameObject.Find(uid.ToString());
             if (!ReferenceEquals(go, null))
             {
+                Debug.Log("Returned from channel");
                 return; // reuse
             }
 
@@ -389,14 +391,28 @@ namespace Agora_RTC_Plugin.API_Example.Examples.Basic.JoinChannelVideo
 
         public override void OnUserJoined(RtcConnection connection, uint uid, int elapsed)
         {
-            _videoSample.Log.UpdateLog(string.Format("OnUserJoined uid: ${0} elapsed: ${1}", uid, elapsed));
+            if (_videoSample?.Log != null)
+            {
+                _videoSample.Log.UpdateLog(string.Format("OnUserJoined uid: {0}, reason: {1}", uid, (int)elapsed));
+            }
+            else
+            {
+                Debug.LogError("Logger is not initialized.");
+            }
             JoinChannelVideo.MakeVideoView(uid, _videoSample.GetChannelName());
         }
 
         public override void OnUserOffline(RtcConnection connection, uint uid, USER_OFFLINE_REASON_TYPE reason)
         {
-            _videoSample.Log.UpdateLog(string.Format("OnUserOffLine uid: ${0}, reason: ${1}", uid,
-                (int)reason));
+            if (_videoSample?.Log != null)
+            {
+                _videoSample.Log.UpdateLog(string.Format("OnUserOffline uid: {0}, reason: {1}", uid, (int)reason));
+            }
+            else
+            {
+                Debug.LogError("Logger is not initialized.");
+            }
+
             JoinChannelVideo.DestroyVideoView(uid);
         }
 

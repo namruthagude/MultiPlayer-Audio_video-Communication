@@ -1,11 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Photon.Pun;
+using Fusion;
 using Agora_RTC_Plugin.API_Example.Examples.Basic.JoinChannelAudio;
 using Agora_RTC_Plugin.API_Example.Examples.Basic.JoinChannelVideo;
 
-public class PlayerController : MonoBehaviourPun, IPunObservable
+public class PlayerController : NetworkBehaviour
 {
     [SerializeField]
     private float _speed = 5f; // Speed should be a float for proper movement calculations
@@ -15,25 +15,17 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
     void Start()
     {
         networkPos = transform.position;
-        PhotonView photon = GetComponent<PhotonView>();
-        if( photon != null)
-        {
-            photon.ObservedComponents.Add(this);
-        }
     }
 
     void Update()
     {
-        Debug.Log("Network pos " +  networkPos);
         // Ensure only the local player can control its own character
-        if (photonView.IsMine)
+        if (Object.HasInputAuthority)
         {
-            //Debug.Log("Handling movement");
             HandleMovement();
         }
         else
         {
-            //Debug.Log("Moving Smoothly");
             SmoothMove();
         }
     }
@@ -71,35 +63,46 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         transform.position = Vector3.Lerp(transform.position, networkPos, Time.deltaTime * lerpRate);
     }
 
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    public override void FixedUpdateNetwork()
     {
-        if (stream.IsWriting)
+        if (GetInput(out NetworkInputData data))
         {
-            Debug.Log("Sending Data");
+            Vector3 movement = new Vector3(data.movementInput.x, data.movementInput.y, 0) * _speed * Runner.DeltaTime;
+            transform.Translate(movement);
+
             // Send position data to other players
-            stream.SendNext(transform.position);
-        }
-        else
-        {
-            Debug.Log("Receiving Data");
-            // Receive position data from other players
-            networkPos = (Vector3)stream.ReceiveNext();
+            networkPos = transform.position;
         }
     }
+
+    public override void Render()
+    {
+        if (!Object.HasInputAuthority)
+        {
+            SmoothMove();
+        }
+    }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if(photonView.IsMine && collision.gameObject.CompareTag("Player"))
+        if (Object.HasInputAuthority && collision.gameObject.CompareTag("Player"))
         {
             JoinChannelAudio.Instance.JoinChannel();
             JoinChannelVideo.Instance.JoinChannel();
         }
     }
+
     private void OnCollisionExit2D(Collision2D collision)
     {
-        if (photonView.IsMine && collision.gameObject.CompareTag("Player"))
+        if (Object.HasInputAuthority && collision.gameObject.CompareTag("Player"))
         {
             JoinChannelAudio.Instance.LeaveChannel();
             JoinChannelVideo.Instance.LeaveChannel();
         }
     }
+}
+
+public struct NetworkInputData : INetworkInput
+{
+    public Vector2 movementInput;
 }
